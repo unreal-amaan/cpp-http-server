@@ -1,9 +1,13 @@
-#include "socket/socket.hpp"
+#include <cerrno>
+#include <cstring>
+#include <unistd.h>
 #include <iostream>
+
+#include "socket/socket.hpp"
 
 constexpr int BUFFER_SIZE = 10240;
 
-void handleClient(Socket& serverSocket, SOCKET clientSocket);
+void handleClient(Socket& serverSocket, int clientSocket);
 
 int main() {
   Socket serverSocket;
@@ -30,8 +34,8 @@ int main() {
   // }
 
   while (true) {
-    SOCKET clientSocket = serverSocket.accept();
-    if (clientSocket == INVALID_SOCKET) {
+    int clientSocket = serverSocket.accept();
+    if (clientSocket == -1) {
       std::cerr << "Failed to accept connection." << std::endl;
     } else {
       std::cout << "Client connected with socket descriptor: " << clientSocket
@@ -44,7 +48,7 @@ int main() {
   return 0;
 }
 
-void handleClient(Socket& serverSocket, SOCKET clientSocket) {
+void handleClient(Socket& serverSocket, int clientSocket) {
   // Handle client communication here
 
   // Receive data from the client
@@ -68,13 +72,13 @@ void handleClient(Socket& serverSocket, SOCKET clientSocket) {
                          "\r\n"
                          "<h1>Hello, World!</h1>";
   int bytesSent = serverSocket.send(clientSocket, response, strlen(response));
-  if (bytesSent == SOCKET_ERROR) {
-    std::cerr << "Send failed with error: " << WSAGetLastError() << std::endl;
+  if (bytesSent == -1) {
+    std::cerr << "Send failed with error: " << strerror(errno) << std::endl;
   } else {
     std::cout << "Sent response to client." << std::endl;
   }
 
   // Close the client socket
-  closesocket(clientSocket);
+  close(clientSocket);
   std::cout << "Client socket closed." << std::endl;
 }

@@ -21,11 +21,7 @@ target_include_directories(
 )
 
 # Link libraries
-target_link_libraries(
-    http_server
-    PRIVATE
-    ws2_32
-)
+
 
 # Compiler flags
 target_compile_options(http_server PRIVATE -Wall -Wextra -pedantic)
