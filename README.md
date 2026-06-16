@@ -1,2 +1,2 @@
 # cpp-http-server
-this repository contains the implementation of a http server in c++ using the winsock2 api.
+this repository contains the implementation of a http server in c++ using posix sockets.
