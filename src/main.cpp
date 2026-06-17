@@ -1,13 +1,17 @@
 #include <cerrno>
+#include <cstddef>
 #include <cstring>
-#include <unistd.h>
 #include <iostream>
+#include <unistd.h>
 
+#include "http/request.hpp"
 #include "socket/socket.hpp"
+#include "http/parser.hpp"
 
 constexpr int BUFFER_SIZE = 10240;
 
-void handleClient(Socket& serverSocket, int clientSocket);
+void handleClient(Socket &serverSocket, int clientSocket);
+void requestParser(const std::string &requestData, HttpRequest &request);
 
 int main() {
   Socket serverSocket;
@@ -16,6 +20,7 @@ int main() {
     std::cerr << "Failed to create serverSocket." << std::endl;
     return 1;
   }
+
   bool bindResult = serverSocket.bind("127.0.0.1", 8080);
   if (!bindResult) {
     std::cerr << "Failed to bind serverSocket." << std::endl;
@@ -28,11 +33,6 @@ int main() {
     return 1;
   }
 
-  // while (true) {
-  //   std::cout << "Server is running and waiting for connections..." <<
-  //   std::endl;
-  // }
-
   while (true) {
     int clientSocket = serverSocket.accept();
     if (clientSocket == -1) {
@@ -41,23 +41,29 @@ int main() {
       std::cout << "Client connected with socket descriptor: " << clientSocket
                 << std::endl;
       // Handle client communication in a separate function or thread
-      handleClient(serverSocket,clientSocket);
+      handleClient(serverSocket, clientSocket);
     }
   }
 
   return 0;
 }
 
-void handleClient(Socket& serverSocket, int clientSocket) {
+void handleClient(Socket &serverSocket, int clientSocket) {
   // Handle client communication here
 
   // Receive data from the client
   char buffer[BUFFER_SIZE];
   int bytesReceived =
       serverSocket.receive(clientSocket, buffer, sizeof(buffer));
+  std::string requestData = std::string(buffer, bytesReceived);
+  HttpRequest request;
+  parseRequest(requestData, request);
   if (bytesReceived > 0) {
-    std::cout << "Received data: " << std::string(buffer, bytesReceived)
-              << std::endl;
+    std::cout << "Received data: " << requestData << std::endl;
+    std::cout << "Parsed Request data:" << std::endl;
+    std::cout << "Method: " << request.method << std::endl;
+    std::cout << "Path: " << request.path << std::endl;
+    std::cout << "Version: " << request.version << std::endl;
   } else if (bytesReceived == 0) {
     std::cout << "Client disconnected." << std::endl;
   } else {
@@ -82,3 +88,4 @@ void handleClient(Socket& serverSocket, int clientSocket) {
   close(clientSocket);
   std::cout << "Client socket closed." << std::endl;
 }
+
