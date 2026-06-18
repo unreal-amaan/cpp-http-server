@@ -56,14 +56,10 @@ void handleClient(Socket &serverSocket, int clientSocket) {
   int bytesReceived =
       serverSocket.receive(clientSocket, buffer, sizeof(buffer));
   std::string requestData = std::string(buffer, bytesReceived);
-  HttpRequest request;
-  parseRequest(requestData, request);
   if (bytesReceived > 0) {
     std::cout << "Received data: " << requestData << std::endl;
-    std::cout << "Parsed Request data:" << std::endl;
-    std::cout << "Method: " << request.method << std::endl;
-    std::cout << "Path: " << request.path << std::endl;
-    std::cout << "Version: " << request.version << std::endl;
+    HttpRequest request;
+    parseRequest(requestData, request);
   } else if (bytesReceived == 0) {
     std::cout << "Client disconnected." << std::endl;
   } else {
