@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -35,14 +34,5 @@ void parseRequest(const std::string &requestData, HttpRequest &request) {
     request.headers[header] = headerContent;
   }
 
-  std::cout << "*****************************" << std::endl;
-  std::cout << "Parsed Request data:" << std::endl;
-  std::cout << "Method: " << request.method << std::endl;
-  std::cout << "Path: " << request.path << std::endl;
-  std::cout << "Version: " << request.version << std::endl;
-  std::cout << "Header Content: " << std::endl;
-  for (auto i : request.headers) {
-    std::cout << i.first << " : " << i.second << std::endl;
-  }std::cout << std::endl;
-  std::cout << "*****************************" << std::endl;
+
 }

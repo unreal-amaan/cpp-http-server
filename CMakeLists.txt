@@ -11,6 +11,7 @@ set(SOURCES
     src/main.cpp
     src/socket/socket.cpp
     src/http/parser.cpp
+    src/http/file_reader.cpp
 )
 
 # Create executable

@@ -1,17 +1,17 @@
 #include <cerrno>
-#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
 
-#include "http/request.hpp"
-#include "socket/socket.hpp"
+#include "http/file_reader.hpp"
 #include "http/parser.hpp"
+#include "http/request.hpp"
+#include "http/response.hpp"
+#include "socket/socket.hpp"
 
 constexpr int BUFFER_SIZE = 10240;
 
 void handleClient(Socket &serverSocket, int clientSocket);
-void requestParser(const std::string &requestData, HttpRequest &request);
 
 int main() {
   Socket serverSocket;
@@ -48,32 +48,61 @@ int main() {
   return 0;
 }
 
-void handleClient(Socket &serverSocket, int clientSocket) {
-  // Handle client communication here
-
+void handleClient(Socket &serverSocket,
+                  int clientSocket) { // Handle client communication here
   // Receive data from the client
+  HttpRequest request;
+  HttpResponse response;
   char buffer[BUFFER_SIZE];
+
   int bytesReceived =
       serverSocket.receive(clientSocket, buffer, sizeof(buffer));
-  std::string requestData = std::string(buffer, bytesReceived);
-  if (bytesReceived > 0) {
-    std::cout << "Received data: " << requestData << std::endl;
-    HttpRequest request;
-    parseRequest(requestData, request);
-  } else if (bytesReceived == 0) {
+
+  if (bytesReceived == 0) {
     std::cout << "Client disconnected." << std::endl;
-  } else {
+    return;
+  }
+  if (bytesReceived == -1) {
     std::cerr << "Failed to receive data." << std::endl;
+    return;
+  }
+  std::string requestData = std::string(buffer, bytesReceived);
+  std::cout << "Received data: " << requestData << std::endl;
+  parseRequest(requestData, request);
+
+  // parsing the body and setting the status code
+  if (request.path == "/") {
+    response.statusCode = "200 OK";
+    response.body = readFile("public/index.html");
+  } else if (request.path == "/about") {
+    response.statusCode = "200 OK";
+    response.body = readFile("public/about.html");
+  } else {
+    response.statusCode = "404 Not Found";
+    response.body = readFile("public/404.html");
   }
 
-  // Send a response back to the client
+  std::cout << "*****************************" << std::endl;
+  std::cout << "Parsed Request data:" << std::endl;
+  std::cout << "Method: " << request.method << std::endl;
+  std::cout << "Path: " << request.path << std::endl;
+  std::cout << "Version: " << request.version << std::endl;
+  std::cout << "Header Content: " << std::endl;
+  for (const auto &i : request.headers) {
+    std::cout << i.first << " : " << i.second << std::endl;
+  }
+  std::cout << std::endl;
+  std::cout << "*****************************" << std::endl;
 
-  const char *response = "HTTP/1.1 200 OK\r\n"
-                         "Content-Type: text/html\r\n"
-                         "Content-Length: 22\r\n"
-                         "\r\n"
-                         "<h1>Hello, World!</h1>";
-  int bytesSent = serverSocket.send(clientSocket, response, strlen(response));
+  // Send a response back to the client
+  std::string rawResponse = "HTTP/1.1 " + response.statusCode +
+                            "\r\n"
+                            "Content-Type: text/html\r\n"
+                            "Content-Length: " +
+                            std::to_string(response.body.size()) + "\r\n\r\n" +
+                            response.body;
+  int bytesSent =
+      serverSocket.send(clientSocket, rawResponse.c_str(), rawResponse.size());
   if (bytesSent == -1) {
     std::cerr << "Send failed with error: " << strerror(errno) << std::endl;
   } else {
@@ -84,4 +113,3 @@ void handleClient(Socket &serverSocket, int clientSocket) {
   close(clientSocket);
   std::cout << "Client socket closed." << std::endl;
 }
-
