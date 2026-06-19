@@ -1,7 +1,9 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <string>
 #include <unistd.h>
+#include <unordered_map>
 
 #include "http/file_reader.hpp"
 #include "http/parser.hpp"
@@ -10,6 +12,11 @@
 #include "socket/socket.hpp"
 
 constexpr int BUFFER_SIZE = 10240;
+
+const std::unordered_map<std::string, std::string> routes {
+    {"/", "public/index.html"},
+    {"/about", "public/about.html"},
+};
 
 void handleClient(Socket &serverSocket, int clientSocket);
 
@@ -70,17 +77,27 @@ void handleClient(Socket &serverSocket,
   std::cout << "Received data: " << requestData << std::endl;
   parseRequest(requestData, request);
 
+  auto route = routes.find(request.path);
   // parsing the body and setting the status code
-  if (request.path == "/") {
+  if (route != routes.end()){
     response.statusCode = "200 OK";
-    response.body = readFile("public/index.html");
-  } else if (request.path == "/about") {
-    response.statusCode = "200 OK";
-    response.body = readFile("public/about.html");
+    response.body = readFile(route->second);
   } else {
     response.statusCode = "404 Not Found";
     response.body = readFile("public/404.html");
   }
+
+  
+  // if (request.path == "/") {
+  //   response.statusCode = "200 OK";
+  //   response.body = readFile("public/index.html");
+  // } else if (request.path == "/about") {
+  //   response.statusCode = "200 OK";
+  //   response.body = readFile("public/about.html");
+  // } else {
+  //   response.statusCode = "404 Not Found";
+  //   response.body = readFile("public/404.html");
+  // }
 
   std::cout << "*****************************" << std::endl;
   std::cout << "Parsed Request data:" << std::endl;
