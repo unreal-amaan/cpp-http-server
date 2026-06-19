@@ -2,8 +2,10 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <unistd.h>
 #include <unordered_map>
+#include <chrono>
 
 #include "http/file_reader.hpp"
 #include "http/parser.hpp"
@@ -48,7 +50,7 @@ int main() {
       std::cout << "Client connected with socket descriptor: " << clientSocket
                 << std::endl;
       // Handle client communication in a separate function or thread
-      handleClient(serverSocket, clientSocket);
+      std::thread(handleClient, std::ref(serverSocket), clientSocket).detach();
     }
   }
 
@@ -58,6 +60,7 @@ int main() {
 void handleClient(Socket &serverSocket,
                   int clientSocket) { // Handle client communication here
   // Receive data from the client
+  std::cout << "Thread: " << std::this_thread::get_id() << std::endl;
   char buffer[BUFFER_SIZE];
   while (true) {
     HttpRequest request;
@@ -88,6 +91,8 @@ void handleClient(Socket &serverSocket,
       response.body = readFile("public/404.html");
     }
 
+    // std::this_thread::sleep_for(std::chrono::seconds(10));  // the thread is made to wait for 10seconds to test concurrency
+
     std::cout << "*****************************" << std::endl;
     std::cout << "Parsed Request data:" << std::endl;
     std::cout << "Method: " << request.method << std::endl;
@@ -101,13 +106,13 @@ void handleClient(Socket &serverSocket,
     std::cout << "*****************************" << std::endl;
 
     // Send a response back to the client
-    std::string rawResponse = "HTTP/1.1 " + response.statusCode +
-                              "\r\n"
-                              "Content-Type: text/html\r\n"
-                              "Connection: keep-alive\r\n" +
-                              "Content-Length: " +
-                              std::to_string(response.body.size()) +
-                              "\r\n\r\n" + response.body;
+    std::string rawResponse =
+        "HTTP/1.1 " + response.statusCode +
+        "\r\n"
+        "Content-Type: text/html\r\n"
+        "Connection: keep-alive\r\n" +
+        "Content-Length: " + std::to_string(response.body.size()) + "\r\n\r\n" +
+        response.body;
     int bytesSent = serverSocket.send(clientSocket, rawResponse.c_str(),
                                       rawResponse.size());
     if (bytesSent == -1) {
